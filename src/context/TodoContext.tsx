@@ -73,6 +73,7 @@ interface TodoContextType {
     categories: string[]
     priorities: string[]
   }) => Todo[]
+  updateCategoryName: (id: string, newName: string) => Promise<void>
 }
 
 const TodoContext = createContext<TodoContextType | undefined>(undefined)
@@ -196,6 +197,20 @@ export function TodoProvider({ children }: { children: ReactNode }) {
     }
     fetchCategories()
     message.success('Category deleted')
+  }
+
+  const updateCategoryName = async (id: string, newName: string) => {
+    if (!userId) return
+    const { error } = await supabase
+      .from('categories')
+      .update({ name: newName })
+      .eq('id', id)
+      .eq('user_id', userId)
+    if (error) {
+      message.error('Failed to update category name')
+      return
+    }
+    await fetchCategories()
   }
 
   // Comments CRUD
@@ -385,6 +400,7 @@ export function TodoProvider({ children }: { children: ReactNode }) {
       fetchCategories: fetchCategoriesVoid,
       addCategory,
       deleteCategory,
+      updateCategoryName,
       fetchComments,
       addComment,
       deleteComment,

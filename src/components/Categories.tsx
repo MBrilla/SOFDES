@@ -1,127 +1,111 @@
 import { useState } from 'react'
-import { Card, List, Tag, Space, Button, Input, Typography, Popconfirm, message } from 'antd'
-import { PlusOutlined, DeleteOutlined, EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons'
+import { Card, Input, Button, Space, List, Typography, Popconfirm, message } from 'antd'
+import { DeleteOutlined, EditOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons'
 import { useTodo } from '../context/TodoContext'
+import type { Category } from '../types'
 
-const { Text } = Typography
+const { Title } = Typography
 
-export default function CategoriesView() {
-  const { todos, categories, addCategory, deleteCategory, updateCategoryName } = useTodo()
+export default function Categories() {
+  const { categories, addCategory, deleteCategory, updateCategoryName } = useTodo()
   const [newCategory, setNewCategory] = useState('')
-  const [editingCategory, setEditingCategory] = useState<string | null>(null)
-  const [editValue, setEditValue] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
 
-  const handleAddCategory = () => {
-    if (newCategory.trim() && !categories.includes(newCategory.trim())) {
-      addCategory(newCategory.trim())
-      setNewCategory('')
-      message.success('Category added successfully')
-    } else {
-      message.error('Invalid category name or category already exists')
-    }
-  }
-
-  const handleDeleteCategory = (category: string) => {
-    const todosWithCategory = todos.filter(todo => todo.category === category)
-    if (todosWithCategory.length > 0) {
-      message.warning(`Cannot delete category "${category}" as it is being used by ${todosWithCategory.length} todos`)
+  const handleAddCategory = async () => {
+    if (!newCategory.trim()) {
+      message.error('Category name cannot be empty')
       return
     }
-    deleteCategory(category)
-    message.success('Category deleted successfully')
+    await addCategory({ name: newCategory.trim() })
+    setNewCategory('')
   }
 
-  const handleStartEdit = (category: string) => {
-    setEditingCategory(category)
-    setEditValue(category)
-  }
-
-  const handleSaveEdit = () => {
-    if (editingCategory && editValue.trim() && editValue !== editingCategory) {
-      if (categories.includes(editValue.trim())) {
-        message.error('Category already exists')
-        return
-      }
-      updateCategoryName(editingCategory, editValue.trim())
-      setEditingCategory(null)
-      message.success('Category updated successfully')
+  const handleUpdateCategory = async (id: string) => {
+    if (!editName.trim()) {
+      message.error('Category name cannot be empty')
+      return
     }
+    await updateCategoryName(id, editName.trim())
+    setEditingId(null)
+    setEditName('')
   }
 
-  const handleCancelEdit = () => {
-    setEditingCategory(null)
-    setEditValue('')
+  const startEditing = (category: Category) => {
+    setEditingId(category.id)
+    setEditName(category.name)
   }
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Card title="Manage Categories">
-        <Space.Compact style={{ width: '100%' }}>
+    <Card>
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Title level={2}>Categories</Title>
+        
+        <Space>
           <Input
-            placeholder="New category name"
+            placeholder="New Category"
             value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
+            onChange={e => setNewCategory(e.target.value)}
             onPressEnter={handleAddCategory}
+            style={{ width: 200 }}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAddCategory}>
+          <Button type="primary" onClick={handleAddCategory}>
             Add Category
           </Button>
-        </Space.Compact>
-      </Card>
+        </Space>
 
-      <List
-        grid={{ gutter: 16, xs: 1, sm: 2, md: 3, lg: 3, xl: 4, xxl: 4 }}
-        dataSource={categories}
-        renderItem={(category) => (
-          <List.Item>
-            <Card>
-              <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                {editingCategory === category ? (
-                  <Space.Compact>
-                    <Input
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onPressEnter={handleSaveEdit}
+        <List
+          dataSource={categories}
+          renderItem={category => (
+            <List.Item
+              actions={[
+                editingId === category.id ? (
+                  <Space>
+                    <Button
+                      type="text"
+                      icon={<CheckOutlined />}
+                      onClick={() => handleUpdateCategory(category.id)}
                     />
-                    <Button type="primary" icon={<CheckOutlined />} onClick={handleSaveEdit} />
-                    <Button icon={<CloseOutlined />} onClick={handleCancelEdit} />
-                  </Space.Compact>
+                    <Button
+                      type="text"
+                      icon={<CloseOutlined />}
+                      onClick={() => {
+                        setEditingId(null)
+                        setEditName('')
+                      }}
+                    />
+                  </Space>
                 ) : (
-                  <>
-                    <Space>
-                      <Tag color="blue">{category}</Tag>
-                      <Text type="secondary">
-                        {todos.filter(todo => todo.category === category).length} todos
-                      </Text>
-                    </Space>
-                    <Space>
-                      <Button 
-                        type="text" 
-                        icon={<EditOutlined />} 
-                        onClick={() => handleStartEdit(category)}
-                      />
-                      <Popconfirm
-                        title="Delete category"
-                        description="Are you sure you want to delete this category?"
-                        onConfirm={() => handleDeleteCategory(category)}
-                        okText="Yes"
-                        cancelText="No"
-                      >
-                        <Button 
-                          type="text" 
-                          danger 
-                          icon={<DeleteOutlined />}
-                          disabled={todos.some(todo => todo.category === category)}
-                        />
-                      </Popconfirm>
-                    </Space>
-                  </>
-                )}
-              </Space>
-            </Card>
-          </List.Item>
-        )}
-      />
-    </Space>
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => startEditing(category)}
+                  />
+                ),
+                <Popconfirm
+                  title="Delete this category?"
+                  onConfirm={() => deleteCategory(category.id)}
+                  okText="Yes"
+                  cancelText="No"
+                >
+                  <Button type="text" danger icon={<DeleteOutlined />} />
+                </Popconfirm>
+              ]}
+            >
+              {editingId === category.id ? (
+                <Input
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  onPressEnter={() => handleUpdateCategory(category.id)}
+                  style={{ width: 200 }}
+                />
+              ) : (
+                <Typography.Text>{category.name}</Typography.Text>
+              )}
+            </List.Item>
+          )}
+        />
+      </Space>
+    </Card>
   )
 } 

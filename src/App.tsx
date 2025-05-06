@@ -13,6 +13,7 @@ import { ColorCustomizer } from './components/ColorCustomizer'
 import AuthForm from './components/AuthForm'
 import { supabase } from './supabaseClient'
 import CalendarView from './components/Calendar'
+import type { Session } from '@supabase/supabase-js'
 
 const { Header, Sider, Content } = Layout
 
@@ -53,10 +54,10 @@ function AppContent() {
       setUser(data.user)
       setLoading(false)
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
       setUser(session?.user ?? null)
     })
-    return () => { listener?.subscription.unsubscribe() }
+    return () => subscription.unsubscribe()
   }, [])
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>
